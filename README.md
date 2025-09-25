@@ -15,10 +15,9 @@ A conversational isochrone mapping tool that combines natural language queries w
 
 ## 🏗️ Architecture
 
-### Core Innovation
-- **Natural Language → Map Visualization**: First tool to combine conversational AI with isochrone mapping
+
 - **100% Free Stack**: Ollama (local LLM) + OpenRouteService + Overpass API + OpenStreetMap
-- **Mobile-First**: Real-world location queries are primarily mobile
+
 
 ### System Flow
 1. User types: "Thai restaurants I can walk to in 10 minutes"
