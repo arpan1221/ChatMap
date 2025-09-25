@@ -1,0 +1,17 @@
+
+> chatmap@0.1.0 dev
+> next dev --turbopack --turbo
+
+ ⚠ The config property `experimental.turbo` is deprecated. Move this setting to `config.turbopack` or run `npx @next/codemod@latest next-experimental-turbo-to-turbopack .`
+ ⚠ Port 3000 is in use by process 93174, using available port 3001 instead.
+   ▲ Next.js 15.5.4 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.86.40:3001
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · turbo
+     · optimizePackageImports
+
+ ✓ Starting...
+ ✓ Ready in 778ms
+[?25h

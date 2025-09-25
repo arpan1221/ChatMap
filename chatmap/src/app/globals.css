@@ -1,0 +1,486 @@
+@import "tailwindcss";
+
+/* Leaflet CSS - Import before custom styles */
+@import "leaflet/dist/leaflet.css";
+
+/* CSS Variables */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #2563eb;
+  --radius: 0.5rem;
+}
+
+/* Theme variables - using standard CSS custom properties */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --accent: #1e293b;
+    --accent-foreground: #f8fafc;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #334155;
+    --input: #334155;
+    --ring: #3b82f6;
+  }
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Leaflet Custom Styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #f8fafc;
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.leaflet-popup-tip {
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+.leaflet-control-zoom a {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #374151;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #f8fafc;
+  color: var(--primary);
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Custom POI Icons */
+.custom-poi-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-location-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ChatMap Specific Styles */
+.chatmap-container {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.chatmap-map {
+  height: 100%;
+  position: relative;
+}
+
+.chatmap-chat {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Message Styles */
+.message-bubble {
+  max-width: 80%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.message-bubble p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Loading States */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fade Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth Transitions */
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smooth-scale {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smooth-scale:hover {
+  transform: scale(1.05);
+}
+
+.smooth-opacity {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Message Animations */
+.message-enter {
+  animation: messageEnter 0.4s ease-out;
+}
+
+@keyframes messageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Map Animations */
+.map-marker-bounce {
+  animation: markerBounce 0.6s ease-out;
+}
+
+@keyframes markerBounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Loading Animations */
+.pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Slide Animations */
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Stagger Animation */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .leaflet-popup-content {
+    margin: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .leaflet-control-zoom {
+    margin: 10px;
+  }
+  
+  .leaflet-control-zoom a {
+    width: 44px;
+    height: 44px;
+    line-height: 42px;
+    font-size: 18px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .leaflet-popup-close-button {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .leaflet-popup-tip {
+    width: 12px;
+    height: 12px;
+  }
+
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+  }
+
+  /* Mobile-specific POI popup styling */
+  .poi-popup-mobile .leaflet-popup-content {
+    margin: 12px 16px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .poi-popup-mobile .leaflet-popup-content h3 {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .leaflet-control-zoom a {
+    min-width: 44px;
+    min-height: 44px;
+    line-height: 42px;
+  }
+  
+  .leaflet-popup-close-button {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 18px;
+  }
+}
+
+/* High DPI Display Optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .leaflet-tile {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .leaflet-control-container {
+    display: none !important;
+  }
+  
+  .leaflet-popup {
+    display: none !important;
+  }
+}
+
+/* Accessibility Improvements */
+.leaflet-control-zoom a:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.leaflet-popup-close-button:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Focus Styles */
+.focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Selection Styles */
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+::-moz-selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 640px) {
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Safe area handling for notched devices */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Touch-friendly button sizing */
+  button, .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Prevent text selection on UI elements */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Optimize scrolling performance */
+  .scroll-smooth {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Landscape mobile optimizations */
+@media (max-width: 896px) and (orientation: landscape) {
+  .landscape-hide {
+    display: none;
+  }
+
+  .landscape-compact {
+    padding: 0.5rem;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 375px) {
+  .text-responsive {
+    font-size: 0.875rem;
+  }
+
+  .p-responsive {
+    padding: 0.75rem;
+  }
+
+  .space-responsive > * + * {
+    margin-top: 0.5rem;
+  }
+}
