@@ -11,6 +11,19 @@ export interface Location {
   lat: number;
   lng: number;
   display_name: string;
+  address?: {
+    house_number?: string;
+    road?: string;
+    neighbourhood?: string;
+    suburb?: string;
+    city?: string;
+    county?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+    country_code?: string;
+    [key: string]: string | undefined;
+  };
 }
 
 // ============================================================================
@@ -49,7 +62,7 @@ export interface ParsedQuery {
   keywords?: string[];
   cuisine?: 'mexican' | 'italian' | 'chinese' | 'indian' | 'japanese' | 'thai' | 'american' | 'french' | 'mediterranean' | 'other' | 'none';
   priceRange?: 'budget' | 'moderate' | 'upscale' | 'any';
-  searchStrategy?: 'nearest_only' | 'all_within_time';
+  searchStrategy?: 'nearest_only' | 'all_within_time' | 'find-enroute';
   showMultiModalDurations?: boolean;
   preferences?: {
     maxResults?: number;
@@ -84,6 +97,9 @@ export interface POI {
     cycling?: number; // in minutes
     public_transport?: number; // in minutes
   };
+  // Multi-step query properties
+  distanceFromAnchor?: number; // in meters from anchor POI
+  travelTimeFromAnchor?: number; // in minutes from anchor POI
 }
 
 // ============================================================================
@@ -122,17 +138,58 @@ export interface ChatMessage {
   timestamp: string; // ISO 8601 format
   id?: string;
   metadata?: {
-    queryType?: 'location' | 'poi_search' | 'general';
+    queryType?: 'location' | 'poi_search' | 'general' | 'turn_by_turn';
     parsedQuery?: ParsedQuery;
     processingTime?: number;
     error?: string;
     memoryContextIds?: string[];
+    pois?: POI[];
+    route?: RouteInfo; // For turn-by-turn directions
+    // Agent metadata
+    agent?: {
+      classification?: {
+        intent: string;
+        complexity: 'simple' | 'multi-step';
+        confidence: number;
+        entities?: Record<string, unknown>;
+      };
+      agentUsed?: string;
+      toolsUsed?: string[];
+      reasoningSteps?: string[];
+      executionTimeMs?: number;
+      apiCallsCount?: number;
+      warnings?: string[];
+    };
   };
 }
 
 // ============================================================================
 // MAP STATE TYPES
 // ============================================================================
+
+export interface RouteInfo {
+  coordinates: [number, number][];
+  distance: number; // meters
+  duration: number; // seconds
+  transport: TransportMode;
+  steps?: RouteStep[];
+  // Additional route attributes
+  ascent?: number; // Elevation gain in meters
+  descent?: number; // Elevation loss in meters
+  avgspeed?: number; // Average speed in km/h
+  detourfactor?: number; // How much longer vs direct route
+  warnings?: string[]; // Traffic and road condition warnings
+  extras?: any; // Additional route information
+  bbox?: number[]; // Bounding box of the route
+  way_points?: number[]; // Indices of waypoints in geometry
+}
+
+export interface RouteStep {
+  instruction: string;
+  distance: number;
+  duration: number;
+  type: number;
+}
 
 export interface MapState {
   center: Location;
@@ -142,6 +199,7 @@ export interface MapState {
   selectedPOI: POI | null;
   isLoading: boolean;
   error: string | null;
+  routes: RouteInfo[];
   bounds?: {
     north: number;
     south: number;
@@ -161,6 +219,67 @@ export interface APIResponse<T = any> {
   message?: string;
   timestamp: string;
   metadata?: Record<string, any>;
+}
+
+// Enroute query result types
+export interface EnrouteQueryResult {
+  optimizedRoute?: {
+    geometry: {
+      coordinates: [number, number][];
+    };
+    distance: number;
+    duration: number;
+    steps: any[];
+  };
+  directRoute?: {
+    properties: {
+      segments: Array<{
+        duration: number;
+      }>;
+    };
+  };
+  candidatePOIs?: POI[];
+  destination?: {
+    lat: number;
+    lng: number;
+    display_name: string;
+  };
+  message?: string;
+}
+
+// Agent response types
+export interface AgentResponse {
+  success: boolean;
+  classification: {
+    intent: string;
+    complexity: 'simple' | 'multi-step';
+    entities: any;
+    requiresContext: boolean;
+    confidence: number;
+    reasoning: string;
+  };
+  agentUsed: string;
+  result: {
+    success: boolean;
+    data?: {
+      primaryPOIs?: POI[];
+      anchorPOI?: POI;
+      pois?: POI[];
+      nearest?: POI;
+      alternatives?: POI[];
+      strategy?: {
+        transport: TransportMode;
+        timeMinutes: number;
+      };
+    };
+    explanation?: string;
+    // Enroute query results
+    optimizedRoute?: EnrouteQueryResult['optimizedRoute'];
+    directRoute?: EnrouteQueryResult['directRoute'];
+    candidatePOIs?: POI[];
+    destination?: EnrouteQueryResult['destination'];
+    message?: string;
+  };
 }
 
 // Pagination metadata

@@ -87,7 +87,7 @@ const ConversationContext: React.FC<ConversationContextProps> = ({
         </div>
       )}
 
-      {memoryContext ? (
+      {memoryContext && memoryContext.preferences ? (
         <div className="mt-3 space-y-3">
           {/* Preferences */}
           {(
@@ -124,7 +124,7 @@ const ConversationContext: React.FC<ConversationContextProps> = ({
           )}
 
           {/* Frequent Locations */}
-          {memoryContext.frequentLocations.length > 0 && (
+          {memoryContext.frequentLocations?.length > 0 && (
             <div className="flex items-start space-x-2">
               <MapPin className="h-4 w-4 text-blue-300 mt-0.5" />
               <div className="flex-1 space-y-1">
@@ -144,7 +144,7 @@ const ConversationContext: React.FC<ConversationContextProps> = ({
           )}
 
           {/* Recent conversation references */}
-          {memoryContext.conversationMemories.length > 0 && (
+          {memoryContext.conversationMemories?.length > 0 && (
             <div className="flex items-start space-x-2">
               <Route className="h-4 w-4 text-blue-300 mt-0.5" />
               <div className="space-y-1">

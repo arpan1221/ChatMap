@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { ChatComponentProps, ChatMessage } from '@/src/lib/types';
 import { Send, Loader2, MapPin, User, Bot, Clock, AlertCircle, Sparkles, Shield } from 'lucide-react';
 import PersonalizedSuggestions from '@/src/components/PersonalizedSuggestions';
+import { AgentMetadata } from '@/src/components/AgentMetadata';
 
 // Main Chat component
 const Chat: React.FC<ChatComponentProps> = ({
@@ -28,7 +29,7 @@ const Chat: React.FC<ChatComponentProps> = ({
 
   const memoryActive = memoryEnabled && Boolean(memoryContext);
   const memoryHighlights = useMemo(() => {
-    if (!memoryContext) {
+    if (!memoryContext || !memoryContext.preferences) {
       return [] as string[];
     }
 
@@ -39,7 +40,7 @@ const Chat: React.FC<ChatComponentProps> = ({
     if (memoryContext.preferences.favoriteTransport?.length) {
       highlights.push(`Prefers ${memoryContext.preferences.favoriteTransport[0]}`);
     }
-    if (memoryContext.frequentLocations.length > 0) {
+    if (memoryContext.frequentLocations?.length > 0) {
       highlights.push(`Often visits ${memoryContext.frequentLocations[0].location.display_name}`);
     }
     return highlights;
@@ -72,7 +73,7 @@ const Chat: React.FC<ChatComponentProps> = ({
 
     const message = inputValue.trim();
     onSendMessage(message);
-    // Don't clear input immediately - let the parent component handle it
+    setInputValue(''); // Clear input after sending
   }, [inputValue, isLoading, onSendMessage]);
 
   const handleSuggestionUse = useCallback((suggestion: string) => {
@@ -243,6 +244,28 @@ const Chat: React.FC<ChatComponentProps> = ({
               </p>
             </div>
             
+            {/* More Info button for assistant messages with POI data */}
+            {isAssistant && message.metadata?.pois && message.metadata.pois.length > 0 && (
+              <div className="mt-2">
+                <button
+                  onClick={() => {
+                    // Trigger a custom event to show more POI details
+                    const event = new CustomEvent('showPOIDetails', { 
+                      detail: { 
+                        pois: message.metadata?.pois,
+                        query: message.metadata?.parsedQuery 
+                      } 
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                  className="inline-flex items-center space-x-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium rounded-md transition-colors"
+                >
+                  <MapPin className="w-3 h-3" />
+                  <span>More Info ({message.metadata.pois.length} places)</span>
+                </button>
+              </div>
+            )}
+            
             <div className={`flex items-center space-x-1 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
               <span className="text-xs text-gray-400">
                 {formatTimestamp(message.timestamp)}
@@ -279,6 +302,18 @@ const Chat: React.FC<ChatComponentProps> = ({
                 </div>
               </div>
             )}
+
+            {message.metadata?.agent && (
+              <AgentMetadata
+                classification={message.metadata.agent.classification}
+                agentUsed={message.metadata.agent.agentUsed}
+                toolsUsed={message.metadata.agent.toolsUsed}
+                reasoningSteps={message.metadata.agent.reasoningSteps}
+                executionTimeMs={message.metadata.agent.executionTimeMs}
+                apiCallsCount={message.metadata.agent.apiCallsCount}
+                warnings={message.metadata.agent.warnings}
+              />
+            )}
           </div>
           
           {isUser && (
@@ -301,7 +336,7 @@ const Chat: React.FC<ChatComponentProps> = ({
         <div className="bg-gray-700 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-lg">
           <div className="flex items-center space-x-2">
             <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-            <span className="text-sm">Thinking...</span>
+            <span className="text-sm">Mapping...</span>
           </div>
         </div>
       </div>
@@ -314,20 +349,20 @@ const Chat: React.FC<ChatComponentProps> = ({
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {!hasMessages ? (
           /* Welcome Screen */
-          <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
+          <div className="flex-1 flex flex-col items-center justify-start pt-8 px-6 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
           {/* Location Icon */}
-          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center">
-            <MapPin className="w-8 h-8 text-white" />
+          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <MapPin className="w-6 h-6 text-white" />
           </div>
 
           {/* Welcome Text */}
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-white">Welcome to ChatMap!</h2>
-            <p className="text-gray-300">Ask me to find places near you. Try something like:</p>
+          <div className="text-center space-y-1 flex-shrink-0">
+            <h2 className="text-xl font-bold text-white">Welcome to ChatMap!</h2>
+            <p className="text-gray-400 text-sm">Ask me to find places near you. Try something like:</p>
           </div>
 
           {/* Example Buttons */}
-          <div className="w-full space-y-3">
+          <div className="w-full space-y-2 flex-shrink-0">
             {[
               "Find coffee shops within 15 minutes walk",
               "Show me restaurants I can drive to in 10 minutes",
@@ -336,7 +371,7 @@ const Chat: React.FC<ChatComponentProps> = ({
               <button
                 key={example}
                 onClick={() => handleExampleClick(example)}
-                className="w-full py-3 px-4 bg-slate-700/80 hover:bg-slate-600/80 text-white rounded-lg transition-all duration-200 text-left"
+                className="w-full py-2.5 px-3 bg-slate-700/80 hover:bg-slate-600/80 text-white rounded-lg transition-all duration-200 text-left text-sm"
               >
                 {example}
               </button>

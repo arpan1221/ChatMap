@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { POI, Location, TransportMode } from '@/src/lib/types';
+import { Config } from '@/src/lib/config';
 
 // OpenRouteService configuration
-const ORS_API_KEY = process.env.ORS_API_KEY;
 const ORS_BASE_URL = 'https://api.openrouteservice.org/v2';
 
 interface DurationRequest {
@@ -24,7 +24,7 @@ async function calculateMultiModalDurations(
   origin: Location, 
   transportModes: TransportMode[]
 ): Promise<POI[]> {
-  if (!ORS_API_KEY) {
+  if (!Config.openRouteService.apiKey) {
     throw new Error('OpenRouteService API key not configured');
   }
 
@@ -51,7 +51,7 @@ async function calculateMultiModalDurations(
       const response = await fetch(`${ORS_BASE_URL}/matrix/${profile}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${ORS_API_KEY}`,
+          'Authorization': `Bearer ${Config.openRouteService.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ORS_API_KEY) {
+    if (!Config.openRouteService.apiKey) {
       return NextResponse.json(
         { 
           success: false, 

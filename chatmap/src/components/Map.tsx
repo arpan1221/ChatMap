@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, CircleMarker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { MapState, Location, POI, IsochroneData, MapComponentProps, LocationFrequency } from '@/src/lib/types';
+import { MapState, Location, POI, IsochroneData, MapComponentProps, LocationFrequency, RouteInfo } from '@/src/lib/types';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers in react-leaflet
@@ -231,6 +231,124 @@ interface POIMarkersProps {
   preferredPOITypes?: string[];
 }
 
+// Route Polyline Component
+const RoutePolyline: React.FC<{
+  route: RouteInfo;
+  color?: string;
+  weight?: number;
+  opacity?: number;
+}> = ({ route, color = '#3b82f6', weight = 6, opacity = 0.9 }) => {
+  return (
+    <Polyline
+      positions={route.coordinates}
+      pathOptions={{
+        color: color,
+        weight: weight,
+        opacity: opacity,
+        dashArray: route.transport === 'walking' ? '5, 10' : undefined,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }}
+      eventHandlers={{
+        click: () => {
+          console.log('[RoutePolyline] Click detected on route:', {
+            hasSteps: !!route.steps,
+            stepsLength: route.steps?.length || 0,
+            route: route
+          });
+          // Show turn-by-turn directions in chat
+          if (route.steps && route.steps.length > 0) {
+            console.log('[RoutePolyline] Dispatching showTurnByTurnDirections event');
+            const event = new CustomEvent('showTurnByTurnDirections', { 
+              detail: { 
+                route: route,
+                steps: route.steps
+              } 
+            });
+            window.dispatchEvent(event);
+          } else {
+            console.log('[RoutePolyline] No steps available for turn-by-turn directions');
+          }
+        }
+      }}
+    >
+      <Popup>
+        <div className="text-sm space-y-2 max-w-sm">
+          <div className="border-b pb-2">
+            <p className="font-semibold text-lg">Route Information</p>
+            <p className="text-gray-600">{route.transport} route</p>
+          </div>
+          
+          {/* Basic Route Info */}
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span className="font-medium">Distance:</span>
+              <span>{(route.distance / 1000).toFixed(2)} km</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Duration:</span>
+              <span>{Math.round(route.duration / 60)} min</span>
+            </div>
+            
+            {/* Speed and Elevation */}
+            {route.avgspeed && route.avgspeed > 0 && (
+              <div className="flex justify-between">
+                <span className="font-medium">Avg Speed:</span>
+                <span>{Math.round(route.avgspeed)} km/h</span>
+              </div>
+            )}
+            
+            {route.ascent !== undefined && route.descent !== undefined && (
+              <>
+                <div className="flex justify-between">
+                  <span className="font-medium">Elevation Gain:</span>
+                  <span className="text-green-600">+{Math.round(route.ascent)}m</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Elevation Loss:</span>
+                  <span className="text-red-600">-{Math.round(route.descent)}m</span>
+                </div>
+              </>
+            )}
+            
+            {route.detourfactor && route.detourfactor > 1.1 && (
+              <div className="flex justify-between">
+                <span className="font-medium">Detour:</span>
+                <span className="text-orange-600">{Math.round((route.detourfactor - 1) * 100)}% longer</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Traffic and Road Conditions */}
+          {route.warnings && route.warnings.length > 0 && (
+            <div className="border-t pt-2">
+              <p className="font-medium text-orange-600 mb-1">🚦 Traffic & Road Info:</p>
+              <ul className="text-xs space-y-1">
+                {route.warnings.slice(0, 4).map((warning: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-orange-500 mr-1">•</span>
+                    <span className="text-orange-700">{warning}</span>
+                  </li>
+                ))}
+                {route.warnings.length > 4 && (
+                  <li className="text-orange-500 text-xs">
+                    ...and {route.warnings.length - 4} more conditions
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+          
+          {/* Click instruction */}
+          <div className="border-t pt-2 text-xs text-gray-500 text-center">
+            Click route for turn-by-turn directions
+          </div>
+        </div>
+      </Popup>
+    </Polyline>
+  );
+};
+
 const POIMarkers: React.FC<POIMarkersProps> = ({ pois, selectedPOI, onPOISelect, preferredPOITypes = [] }) => {
   return (
     <>
@@ -243,47 +361,144 @@ const POIMarkers: React.FC<POIMarkersProps> = ({ pois, selectedPOI, onPOISelect,
             click: () => onPOISelect(poi),
           }}
         >
-          <Popup maxWidth={280} className="poi-popup-mobile">
-            <div className="poi-popup p-2">
-              <h3 className="font-semibold text-base sm:text-lg mb-2 break-words">{poi.name}</h3>
-              <div className="space-y-1 text-xs sm:text-sm">
-                <p><span className="font-medium">Type:</span> {poi.type}</p>
+          <Popup maxWidth={350} className="poi-popup-mobile">
+            <div className="poi-popup bg-white rounded-lg shadow-lg border border-gray-200 p-4 min-w-[300px]">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-gray-900 mb-1 break-words">{poi.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {poi.type}
+                    </span>
+                    {poi.rating && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        ⭐ {poi.rating}/5
+                      </span>
+                    )}
+                    {poi.priceLevel && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {poi.priceLevel === 'low' ? '💰' : poi.priceLevel === 'medium' ? '💰💰' : '💰💰💰'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button 
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Close popup logic would go here
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Main Content */}
+              <div className="space-y-3">
+                {/* Address */}
                 {poi.address && (
-                  <p className="break-words"><span className="font-medium">Address:</span> {poi.address}</p>
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 mt-0.5">📍</span>
+                    <p className="text-sm text-gray-700 break-words">{poi.address}</p>
+                  </div>
                 )}
+
+                {/* Distance */}
                 {poi.distance && (
-                  <p><span className="font-medium">Distance:</span> {Math.round(poi.distance / 1000 * 100) / 100} km</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">📏</span>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">{Math.round(poi.distance / 1000 * 100) / 100} km</span> away
+                    </p>
+                  </div>
                 )}
-                {poi.walkTime && (
-                  <p><span className="font-medium">Walk Time:</span> {poi.walkTime} min</p>
-                )}
+
+                {/* Travel Times */}
                 {poi.durations && (
-                  <div className="mt-2">
-                    <p className="font-medium text-xs mb-1">Travel Times:</p>
-                    <div className="grid grid-cols-2 gap-1 text-xs">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <h4 className="font-semibold text-sm text-gray-900 mb-2">Travel Times</h4>
+                    <div className="grid grid-cols-2 gap-2">
                       {Object.entries(poi.durations).map(([mode, time]) => (
-                        <div key={mode} className="flex justify-between">
-                          <span className="capitalize">{mode.replace('_', ' ')}:</span>
-                          <span className="font-medium">{time}min</span>
+                        <div key={mode} className="flex items-center justify-between bg-white rounded px-2 py-1">
+                          <span className="text-xs text-gray-600 capitalize flex items-center gap-1">
+                            {mode === 'walking' && '🚶'}
+                            {mode === 'driving' && '🚗'}
+                            {mode === 'cycling' && '🚴'}
+                            {mode === 'public_transport' && '🚌'}
+                            {mode.replace('_', ' ')}
+                          </span>
+                          <span className="text-xs font-semibold text-gray-900">{time}min</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                {poi.phone && (
-                  <p><span className="font-medium">Phone:</span> {poi.phone}</p>
-                )}
-                {poi.website && (
-                  <p>
-                    <span className="font-medium">Website:</span>{' '}
-                    <a href={poi.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
-                      Visit
-                    </a>
-                  </p>
-                )}
-                {poi.openingHours && (
-                  <p className="break-words"><span className="font-medium">Hours:</span> {poi.openingHours}</p>
-                )}
+
+                {/* Contact Info */}
+                <div className="space-y-2">
+                  {poi.phone && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">📞</span>
+                      <a href={`tel:${poi.phone}`} className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                        {poi.phone}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {poi.website && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">🌐</span>
+                      <a href={poi.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline break-all">
+                        Visit Website
+                      </a>
+                    </div>
+                  )}
+                  
+                  {poi.openingHours && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-gray-500 mt-0.5">🕒</span>
+                      <p className="text-sm text-gray-700 break-words">{poi.openingHours}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2 border-t border-gray-200">
+                  <button 
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Trigger directions request
+                      if (onPOISelect) {
+                        onPOISelect(poi);
+                        // Also trigger directions request
+                        setTimeout(() => {
+                          const event = new CustomEvent('requestDirections', { detail: { poi } });
+                          window.dispatchEvent(event);
+                        }, 100);
+                      }
+                    }}
+                  >
+                    Get Directions
+                  </button>
+                  <button 
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-3 rounded-md transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Trigger custom event to show POI details in chat
+                      const event = new CustomEvent('showPOIDetails', { 
+                        detail: { 
+                          pois: [poi],
+                          query: { poiType: poi.type }
+                        } 
+                      });
+                      window.dispatchEvent(event);
+                    }}
+                  >
+                    More Info
+                  </button>
+                </div>
               </div>
             </div>
           </Popup>
@@ -399,6 +614,24 @@ const Map: React.FC<MapComponentProps> = ({
           onPOISelect={handlePOISelect}
           preferredPOITypes={preferredPOITypes}
         />
+
+        {/* Route Polylines */}
+        {mapState.routes.map((route, index) => (
+          <div key={`route-${index}`}>
+            {/* Shadow/outline for better visibility */}
+            <RoutePolyline
+              route={route}
+              color="#1e40af" // Darker blue for shadow
+              weight={8}
+              opacity={0.3}
+            />
+            {/* Main route line */}
+            <RoutePolyline
+              route={route}
+              color={index === 0 ? '#3b82f6' : '#10b981'} // Blue for primary route, green for secondary
+            />
+          </div>
+        ))}
 
         {frequentLocations.map((location) => (
           <CircleMarker

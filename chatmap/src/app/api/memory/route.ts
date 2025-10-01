@@ -1,291 +1,342 @@
-export const runtime = 'nodejs';
+/**
+ * Memory API Routes
+ * Manage user memories with vector search and semantic retrieval
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getMemoryClient } from '@/src/clients/memory-client';
+import type { APIResponse, Memory, MemoryContextSummary } from '@/src/lib/types';
+import { z } from 'zod';
 
-import { getServerMem0Service } from '@/src/lib/memory/mem0-server';
-import type {
-  ConversationMemory,
-  Location,
-  LocationFrequency,
-  LocationMemory,
-  Memory,
-  UserPreferences,
-} from '@/src/lib/types';
+export const runtime = 'nodejs';
 
-const DEFAULT_HISTORY_LIMIT = 20;
+// ============================================================================
+// Validation Schemas
+// ============================================================================
 
-function resolveUserId(request: NextRequest, override?: string | null): string {
-  if (override && override.trim().length > 0) {
-    return override.trim();
-  }
+const addMemorySchema = z.object({
+  userId: z.string().min(1),
+  content: z.string().min(1),
+  type: z.enum(['location', 'conversation', 'preference', 'system']).optional(),
+  metadata: z.record(z.any()).optional(),
+});
 
-  const headerUserId =
-    request.headers.get('x-user-id') ||
-    request.headers.get('x-chatmap-user') ||
-    request.headers.get('x-client-id');
+const searchMemorySchema = z.object({
+  userId: z.string().min(1),
+  query: z.string().min(1),
+  limit: z.number().int().positive().optional(),
+  scoreThreshold: z.number().min(0).max(1).optional(),
+  filters: z
+    .object({
+      poiType: z.string().optional(),
+      transportMode: z.string().optional(),
+      timeOfDay: z.string().optional(),
+      dayOfWeek: z.string().optional(),
+    })
+    .optional(),
+});
 
-  return headerUserId && headerUserId.trim().length > 0 ? headerUserId.trim() : 'anonymous-user';
-}
-
-function determineTimeOfDay(date: Date): string {
-  const hour = date.getHours();
-  if (hour < 6) return 'late night';
-  if (hour < 12) return 'morning';
-  if (hour < 17) return 'afternoon';
-  if (hour < 21) return 'evening';
-  return 'night';
-}
-
-function deriveSuggestions(
-  preferences: UserPreferences,
-  locationHistory: LocationMemory[],
-  frequentLocations: LocationFrequency[],
-  conversationMemories: ConversationMemory[],
-  limit = 6,
-): string[] {
-  const suggestions = new Set<string>();
-
-  preferences.favoritePOITypes?.forEach((type) => {
-    if (type) {
-      suggestions.add(`Explore more ${type} spots nearby`);
-    }
-  });
-
-  preferences.favoriteCuisines?.forEach((cuisine) => {
-    if (cuisine) {
-      suggestions.add(`Find ${cuisine} restaurants in the area`);
-    }
-  });
-
-  preferences.favoriteTransport?.forEach((transport) => {
-    if (transport) {
-      suggestions.add(`Discover places accessible by ${transport}`);
-    }
-  });
-
-  frequentLocations.slice(0, 3).forEach((freq) => {
-    suggestions.add(`Return to ${freq.location.display_name}`);
-  });
-
-  conversationMemories.slice(0, 2).forEach((conv) => {
-    if (conv.query.toLowerCase().includes('near')) {
-      suggestions.add(`Find more places like what you searched for`);
-    }
-  });
-
-  return Array.from(suggestions).slice(0, limit);
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const resource = searchParams.get('resource');
-    const userId = resolveUserId(request, searchParams.get('userId'));
-
-    if (!resource) {
-      return NextResponse.json(
-        { success: false, error: 'Resource parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    let mem0Service;
-    try {
-      mem0Service = await getServerMem0Service();
-    } catch (error) {
-      console.error('Failed to initialize mem0 service:', error);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Memory service initialization failed',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        },
-        { status: 500 }
-      );
-    }
-
-    switch (resource) {
-      case 'insights': {
-        try {
-          const [preferences, locationHistory, frequentLocations, conversationMemories] = await Promise.all([
-            mem0Service.getUserPreferences(userId),
-            mem0Service.getLocationHistory(userId),
-            mem0Service.getFrequentLocations(userId),
-            mem0Service.getConversationContext(userId, DEFAULT_HISTORY_LIMIT),
-          ]);
-
-          const personalizedSuggestions = deriveSuggestions(
-            preferences,
-            locationHistory,
-            frequentLocations,
-            conversationMemories,
-          );
-
-          return NextResponse.json({
-            success: true,
-            data: {
-              preferences,
-              locationHistory,
-              frequentLocations,
-              conversationHighlights: conversationMemories,
-              personalizedSuggestions,
-            },
-          });
-        } catch (error) {
-          console.error('Failed to fetch memory insights:', error);
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: 'Failed to fetch memory insights',
-              details: error instanceof Error ? error.message : 'Unknown error'
-            },
-            { status: 500 }
-          );
-        }
-      }
-
-      case 'preferences': {
-        const preferences = await mem0Service.getUserPreferences(userId);
-        return NextResponse.json({ success: true, data: preferences });
-      }
-
-      case 'location-history': {
-        const locationParam = searchParams.get('location');
-        const location = locationParam ? JSON.parse(locationParam) : undefined;
-        const history = await mem0Service.getLocationHistory(userId, location);
-        return NextResponse.json({ success: true, data: history });
-      }
-
-      case 'conversation-context': {
-        const limit = parseInt(searchParams.get('limit') || DEFAULT_HISTORY_LIMIT.toString(), 10);
-        const context = await mem0Service.getConversationContext(userId, limit);
-        return NextResponse.json({ success: true, data: context });
-      }
-
-      case 'frequent-locations': {
-        const locations = await mem0Service.getFrequentLocations(userId);
-        return NextResponse.json({ success: true, data: locations });
-      }
-
-      default:
-        return NextResponse.json(
-          { success: false, error: `Unknown resource: ${resource}` },
-          { status: 400 }
-        );
-    }
-  } catch (error) {
-    console.error('Memory GET error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to retrieve memory data' },
-      { status: 500 }
-    );
-  }
-}
+// ============================================================================
+// POST /api/memory - Add a new memory
+// ============================================================================
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, userId, ...data } = body;
+    const { userId, content, type, metadata } = addMemorySchema.parse(body);
 
-    if (!type || !userId) {
+    const memoryClient = getMemoryClient();
+    const memory = await memoryClient.addMemory({
+      userId,
+      content,
+      type,
+      metadata,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: memory,
+      message: 'Memory added successfully',
+      timestamp: new Date().toISOString(),
+    } as APIResponse<Memory>);
+  } catch (error) {
+    console.error('[Memory API] Add error:', error);
+    
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Type and userId are required' },
+        {
+          success: false,
+          error: 'Invalid request data',
+          message: error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+          timestamp: new Date().toISOString(),
+        } as APIResponse,
         { status: 400 }
       );
     }
 
-    const mem0Service = await getServerMem0Service();
-
-    switch (type) {
-      case 'location': {
-        const memory: LocationMemory = {
-          ...data.memory,
-          context: {
-            timeOfDay: determineTimeOfDay(new Date()),
-            dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
-            ...data.memory.context,
-          },
-        };
-        const memoryId = await mem0Service.addLocationMemory(userId, memory);
-        return NextResponse.json({ success: true, data: { memoryId } });
-      }
-
-      case 'conversation': {
-        const { query, response, context } = data;
-        const memoryId = await mem0Service.addConversationMemory(userId, query, response, context);
-        return NextResponse.json({ success: true, data: { memoryId } });
-      }
-
-      case 'preference': {
-        const { preferences } = data;
-        const memoryId = await mem0Service.addPreferenceMemory(userId, preferences);
-        return NextResponse.json({ success: true, data: { memoryId } });
-      }
-
-      case 'search': {
-        const { query, limit = 10 } = data;
-        const memories = await mem0Service.getRelevantMemories(userId, query, limit);
-        return NextResponse.json({ success: true, data: memories });
-      }
-
-      case 'search-by-location': {
-        const { location, radius } = data;
-        const memories = await mem0Service.searchMemoriesByLocation(userId, location, radius);
-        return NextResponse.json({ success: true, data: memories });
-      }
-
-      case 'search-by-poi-type': {
-        const { poiType } = data;
-        const memories = await mem0Service.searchMemoriesByPOIType(userId, poiType);
-        return NextResponse.json({ success: true, data: memories });
-      }
-
-      default:
-        return NextResponse.json(
-          { success: false, error: `Unknown type: ${type}` },
-          { status: 400 }
-        );
-    }
-  } catch (error) {
-    console.error('Memory POST error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to process memory request' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to add memory',
+        timestamp: new Date().toISOString(),
+      } as APIResponse,
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const resource = searchParams.get('resource');
-    const userId = resolveUserId(request, searchParams.get('userId'));
+// ============================================================================
+// GET /api/memory - Search or list memories
+// ============================================================================
 
-    if (!resource) {
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const userId = searchParams.get('userId') || request.headers.get('X-User-Id');
+    const query = searchParams.get('query');
+    const limit = searchParams.get('limit');
+    const offset = searchParams.get('offset');
+    const resource = searchParams.get('resource');
+
+    if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Resource parameter is required' },
+        {
+          success: false,
+          error: 'userId parameter or X-User-Id header is required',
+          timestamp: new Date().toISOString(),
+        } as APIResponse,
         { status: 400 }
       );
     }
 
-    const mem0Service = await getServerMem0Service();
+    const memoryClient = getMemoryClient();
 
-    switch (resource) {
-      case 'all': {
-        await mem0Service.clearUserMemories(userId);
-        return NextResponse.json({ success: true, data: { message: 'All memories cleared' } });
-      }
+    // Handle insights request - redirect to context endpoint
+    if (resource === 'insights') {
+      const context = await memoryClient.getMemoryContext(userId);
+      
+      // Transform context to match frontend expectations
+      const insights = {
+        preferences: context.preferences,
+        conversationHighlights: context.conversationMemories.slice(0, 5), // Limit to recent 5
+        locationHistory: context.locationHistory.slice(0, 10), // Limit to recent 10
+        frequentLocations: context.frequentLocations,
+        personalizedSuggestions: generatePersonalizedSuggestions(context),
+      };
 
-      default:
+      return NextResponse.json({
+        success: true,
+        data: insights,
+        timestamp: new Date().toISOString(),
+      } as APIResponse);
+    }
+
+    // If query is provided, do semantic search
+    if (query) {
+      const memories = await memoryClient.searchMemories({
+        userId,
+        query,
+        limit: limit ? parseInt(limit) : undefined,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: { memories, count: memories.length },
+        timestamp: new Date().toISOString(),
+      } as APIResponse);
+    }
+
+    // Otherwise, get all memories
+    const memories = await memoryClient.getMemories(
+      userId,
+      limit ? parseInt(limit) : undefined,
+      offset ? parseInt(offset) : undefined
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: { memories, count: memories.length },
+      timestamp: new Date().toISOString(),
+    } as APIResponse);
+  } catch (error) {
+    console.error('[Memory API] Get error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get memories',
+        timestamp: new Date().toISOString(),
+      } as APIResponse,
+      { status: 500 }
+    );
+  }
+}
+
+// Helper function to generate personalized suggestions based on memory context
+function generatePersonalizedSuggestions(context: MemoryContextSummary): string[] {
+  const suggestions: string[] = [];
+  
+  // Add suggestions based on preferences
+  if (context.preferences?.favoriteTransport && context.preferences.favoriteTransport.length > 0) {
+    suggestions.push(`Find places within 15 minutes by ${context.preferences.favoriteTransport[0]}`);
+  }
+  
+  if (context.preferences?.favoritePOITypes && context.preferences.favoritePOITypes.length > 0) {
+    const poiType = context.preferences.favoritePOITypes[0];
+    suggestions.push(`Show me the nearest ${poiType}`);
+  }
+  
+  // Add suggestions based on frequent locations
+  if (context.frequentLocations?.length > 0) {
+    const location = context.frequentLocations[0];
+    suggestions.push(`Find restaurants near ${location.location.display_name}`);
+  }
+  
+  // Add suggestions based on conversation history
+  if (context.conversationMemories?.length > 0) {
+    suggestions.push(`Find similar places to what I've searched before`);
+  }
+  
+  // Default suggestions if no context
+  if (suggestions.length === 0) {
+    suggestions.push(
+      "Find restaurants within 15 minutes walk",
+      "Show me the nearest coffee shop",
+      "Find gas stations near me"
+    );
+  }
+  
+  return suggestions.slice(0, 3); // Limit to 3 suggestions
+}
+
+// ============================================================================
+// DELETE /api/memory - Delete memories
+// ============================================================================
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const userId = searchParams.get('userId');
+    const memoryId = searchParams.get('memoryId');
+    const resource = searchParams.get('resource');
+
+    // Handle resource=all case (from frontend)
+    if (resource === 'all') {
+      const userIdFromHeader = request.headers.get('X-User-Id');
+      if (!userIdFromHeader) {
         return NextResponse.json(
-          { success: false, error: `Unknown resource: ${resource}` },
+          {
+            success: false,
+            error: 'X-User-Id header is required for resource=all',
+            timestamp: new Date().toISOString(),
+          } as APIResponse,
           { status: 400 }
         );
+      }
+      
+      const memoryClient = getMemoryClient();
+      await memoryClient.deleteUserMemories(userIdFromHeader);
+      return NextResponse.json({
+        success: true,
+        message: 'All user memories deleted successfully',
+        timestamp: new Date().toISOString(),
+      } as APIResponse);
     }
-  } catch (error) {
-    console.error('Memory DELETE error:', error);
+
+    if (!userId && !memoryId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Either userId or memoryId parameter is required',
+          timestamp: new Date().toISOString(),
+        } as APIResponse,
+        { status: 400 }
+      );
+    }
+
+    const memoryClient = getMemoryClient();
+
+    // Delete specific memory
+    if (memoryId) {
+      await memoryClient.deleteMemory(memoryId);
+      return NextResponse.json({
+        success: true,
+        message: 'Memory deleted successfully',
+        timestamp: new Date().toISOString(),
+      } as APIResponse);
+    }
+
+    // Delete all user memories
+    if (userId) {
+      await memoryClient.deleteUserMemories(userId);
+      return NextResponse.json({
+        success: true,
+        message: 'All user memories deleted successfully',
+        timestamp: new Date().toISOString(),
+      } as APIResponse);
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Failed to clear memories' },
+      {
+        success: false,
+        error: 'Invalid request',
+        timestamp: new Date().toISOString(),
+      } as APIResponse,
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error('[Memory API] Delete error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete memory',
+        timestamp: new Date().toISOString(),
+      } as APIResponse,
+      { status: 500 }
+    );
+  }
+}
+
+// ============================================================================
+// PUT /api/memory - Update a memory
+// ============================================================================
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { memoryId, content, metadata } = body;
+
+    if (!memoryId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'memoryId is required',
+          timestamp: new Date().toISOString(),
+        } as APIResponse,
+        { status: 400 }
+      );
+    }
+
+    const memoryClient = getMemoryClient();
+    const updatedMemory = await memoryClient.updateMemory({
+      memoryId,
+      content,
+      metadata,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: updatedMemory,
+      message: 'Memory updated successfully',
+      timestamp: new Date().toISOString(),
+    } as APIResponse<Memory>);
+  } catch (error) {
+    console.error('[Memory API] Update error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update memory',
+        timestamp: new Date().toISOString(),
+      } as APIResponse,
       { status: 500 }
     );
   }
