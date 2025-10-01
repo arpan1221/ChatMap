@@ -197,8 +197,6 @@ cp .env.example .env.local
 └─────────────────────────────────────────────────────────────────┘ -->
 ```mermaid
 flowchart TB
-
-%% ===== Nodes =====
 U[User Query]
 QA[Query Analyzer]
 C{Complex?}
@@ -206,32 +204,29 @@ C{Complex?}
 DQ[Query Decomposer]
 SQ[Single Query Flow]
 
-S1[Geocode<br/>(/api/geocode → Nominatim)]
-S2[Isochrone<br/>(/api/isochrone → OpenRouteService)]
-S3[POIs<br/>(/api/pois → Overpass)]
+S1[Geocode<br/>/api/geocode -> Nominatim]
+S2[Isochrone<br/>/api/isochrone -> OpenRouteService]
+S3[POIs<br/>/api/pois -> Overpass]
 
 AGG[Aggregator]
-NORM[Normalize & Shape<br/>(GeoJSON • markers)]
+NORM[Normalize & Shape<br/>GeoJSON + markers]
 
 LLM[Ollama Chat<br/>Streaming]
-MEM[Memory Context<br/>(mem0ai + Qdrant)]
+MEM[Memory Context<br/>mem0ai + Qdrant]
 
-VERIFY[Optional Claim Verification<br/>confidence • conflicts]
+VERIFY[Optional Claim Verification<br/>confidence + conflicts]
 RT[Real-time Token Stream]
-MAP[Map Render<br/>(Leaflet)]
+MAP[Map Render<br/>Leaflet]
 UI[Client UI]
 
-%% ===== Flow =====
 U --> QA --> C
 C -->|Yes| DQ
 C -->|No| SQ
 
-%% Complex branch fan-out
 DQ --> S1
 DQ --> S2
 DQ --> S3
 
-%% Single path also feeds aggregator
 SQ --> AGG
 S1 --> AGG
 S2 --> AGG
@@ -245,20 +240,6 @@ LLM --> RT --> UI
 NORM --> MAP --> UI
 LLM --> VERIFY --> UI
 
-%% ===== Styles (GitHub-safe) =====
-classDef start fill:#ffffff,stroke:#333,stroke-width:2px;
-classDef decision fill:#ffffff,stroke:#333,stroke-width:2px,stroke-dasharray:3 3;
-classDef blue fill:#e8f2ff,stroke:#5aa1ff,color:#000;
-classDef green fill:#e9fbe8,stroke:#3cc36b,color:#000;
-classDef pink fill:#ffe6ef,stroke:#ff6f9e,color:#000;
-classDef purple fill:#efe6ff,stroke:#9b6cff,color:#000;
-
-class U,QA,UI start
-class C decision
-class DQ,SQ,S1,S2,S3,AGG,NORM blue
-class MAP green
-class LLM,RT pink
-class MEM,VERIFY purple
 ```
 
 ### **Architecture Principles**
