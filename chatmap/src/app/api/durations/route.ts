@@ -69,6 +69,7 @@ async function calculateMultiModalDurations(
       }
 
       const data = await response.json();
+      console.log(`ORS Matrix API response for ${transportMode}:`, JSON.stringify(data, null, 2));
       
       if (data.durations && data.durations[0]) {
         const durations = data.durations[0];
@@ -90,6 +91,8 @@ async function calculateMultiModalDurations(
             }
           }
         });
+      } else {
+        console.warn(`No duration data received for ${transportMode}:`, data);
       }
     } catch (error) {
       console.error(`Error calculating ${transportMode} durations:`, error);

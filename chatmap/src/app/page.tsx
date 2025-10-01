@@ -135,7 +135,7 @@ type CachedQuery = {
 export default function Home() {
   // Application state
   const [mapState, setMapState] = useState<MapState>({
-    center: { lat: 0, lng: 0, display_name: 'Loading...' },
+    center: { lat: 29.7604, lng: -95.3698, display_name: 'Houston, TX' },
     zoom: 13,
     isochrone: null,
     pois: [],
@@ -702,9 +702,19 @@ export default function Home() {
             // For enroute queries, try to get user location from the agent response first
             let locationForEnroute = userLocation || queryLocation || mapState.center;
             
-            // For enroute queries, use the current user location or query location
-            // The agent response doesn't contain user location, so we use the available location
-            console.log('[Map] Using location for enroute query:', locationForEnroute);
+            // Try to extract user location from the agent response optimized route
+            const agentResultData = resultData as any; // Type assertion for enroute properties
+            if (agentResultData?.optimizedRoute?.steps?.[0]?.location) {
+              const startLocation = agentResultData.optimizedRoute.steps[0].location;
+              locationForEnroute = {
+                lat: startLocation[1], // [lng, lat] format from ORS
+                lng: startLocation[0],
+                display_name: 'Current Location'
+              };
+              console.log('[Map] Using user location from optimized route start:', locationForEnroute);
+            } else {
+              console.log('[Map] Using fallback location for enroute query:', locationForEnroute);
+            }
             
             // If coordinates are (0,0) or invalid, use a default Houston location
             console.log('[Map] Coordinate validation check:', {
@@ -868,13 +878,10 @@ export default function Home() {
               }
               
               // Center map on the route - use stopover as center if available, otherwise use destination
-              const routeCenter: Location = stopoverPOI ? {
-                lat: stopoverPOI.lat,
-                lng: stopoverPOI.lng,
-                display_name: 'Route Center'
-              } : {
-                lat: destination.lat,
-                lng: destination.lng,
+              // Calculate center point between user location, stopover, and destination
+              const routeCenter: Location = {
+                lat: (locationForEnroute.lat + stopoverPOI.lat + destination.lat) / 3,
+                lng: (locationForEnroute.lng + stopoverPOI.lng + destination.lng) / 3,
                 display_name: 'Route Center'
               };
               
@@ -1653,6 +1660,16 @@ export default function Home() {
       let finalPOIs = pois;
       try {
         const transportModes: TransportMode[] = ['walking', 'driving', 'cycling', 'public_transport'];
+        console.log('[Duration API] Request data:', {
+          pois: pois.map(poi => ({
+            lat: poi.lat,
+            lng: poi.lng,
+            name: poi.name
+          })),
+          origin: parsedQuery.location,
+          transportModes
+        });
+
         const durationResponse = await fetch('/api/durations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1662,13 +1679,14 @@ export default function Home() {
               lng: poi.lng,
               name: poi.name
             })),
-            userLocation: parsedQuery.location,
+            origin: parsedQuery.location,
             transportModes
           })
         });
 
         if (durationResponse.ok) {
           const durationData = await durationResponse.json();
+          console.log('[Duration API] Response data:', durationData);
           if (durationData.success && durationData.data) {
             // Merge duration data back into POIs
             finalPOIs = pois.map(poi => {
