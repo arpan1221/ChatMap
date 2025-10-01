@@ -195,7 +195,7 @@ cp .env.example .env.local
 │  │  nomic-embed-text - Semantic Memory & User Preferences  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘ -->
-
+```mermaid
 flowchart TB
 
 %% ===== Nodes =====
@@ -259,7 +259,7 @@ class DQ,SQ,S1,S2,S3,AGG,NORM blue
 class MAP green
 class LLM,RT pink
 class MEM,VERIFY purple
-
+```
 
 ### **Architecture Principles**
 
