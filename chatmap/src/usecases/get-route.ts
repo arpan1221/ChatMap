@@ -84,8 +84,6 @@ export async function getRoute(
       attributes: ['avgspeed', 'detourfactor', 'percentage'],
       elevation: true, // Include elevation data
       maneuvers: true, // Include maneuver information
-      // Request detailed road information
-      extra_info: ['tollways', 'surface', 'waycategory', 'roadaccessrestrictions', 'green', 'noise'],
       // Request traffic and warnings information
       options: {
         avoid_features: request.avoidFeatures || [],
