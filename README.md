@@ -7,7 +7,7 @@ AI-powered conversational isochrone mapping application that combines natural la
 ![Next.js](https://img.shields.io/badge/Next.js-15.5-black)
 ![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-green)
 
-[Watch Demo Video](https://drive.google.com/file/d/1BGFxtVCfXXB2BLT-UVvdcCuGUntfclC_/view)
+[![Watch the video](https://img.shields.io/badge/▶-Watch%20Demo-red?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1BGFxtVCfXXB2BLT-UVvdcCuGUntfclC_/view)
 
 ## ⚡ Quick Start
 
