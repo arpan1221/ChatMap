@@ -365,8 +365,10 @@ export const geocodeAddressTool = new DynamicStructuredTool({
         location,
       });
     } catch (error) {
+      console.error(`[GeocodeAddressTool] Error geocoding "${address}":`, error);
       return JSON.stringify({
         success: false,
+        message: `Could not find location: ${address}`,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }

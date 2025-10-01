@@ -15,6 +15,7 @@ import {
   MemoryContextSummary,
   RouteInfo,
 } from '@/src/lib/types';
+import { getDefaultLocation } from '@/src/lib/config';
 import Chat from '@/src/components/Chat';
 import QueryInput from '@/src/components/QueryInput';
 import { MapPin, AlertCircle, Loader2, RefreshCw, Wifi, WifiOff, MapPinOff, Bot, Shield, Sparkles, ArrowUpRight } from 'lucide-react';
@@ -135,7 +136,7 @@ type CachedQuery = {
 export default function Home() {
   // Application state
   const [mapState, setMapState] = useState<MapState>({
-    center: { lat: 29.7604, lng: -95.3698, display_name: 'Houston, TX' },
+    center: getDefaultLocation(),
     zoom: 13,
     isochrone: null,
     pois: [],
@@ -746,11 +747,10 @@ export default function Home() {
                 isNaN(locationForEnroute.lng) ||
                 locationForEnroute.lat < -90 || locationForEnroute.lat > 90 ||
                 locationForEnroute.lng < -180 || locationForEnroute.lng > 180) {
-              console.warn('[Map] Invalid coordinates detected, using default Houston location');
+              console.warn('[Map] Invalid coordinates detected, using default location');
               locationForEnroute = {
-                lat: 29.7604,
-                lng: -95.3698,
-                display_name: 'Houston, TX (Default)'
+                ...getDefaultLocation(),
+                display_name: `${getDefaultLocation().display_name} (Default)`
               };
             }
             
@@ -1854,11 +1854,10 @@ export default function Home() {
           setShowLocationMarker(true);
           console.log('Set userLocation to:', currentLocation);
         } else {
-          // If we can't get location, use a default location (Houston, TX)
+          // If we can't get location, use a default location
           locationForQuery = {
-            lat: 29.7604,
-            lng: -95.3698,
-            display_name: 'Houston, TX (Default)'
+            ...getDefaultLocation(),
+            display_name: `${getDefaultLocation().display_name} (Default)`
           };
           setUserLocation(locationForQuery); // Set as userLocation
           console.log('Using default location:', locationForQuery);

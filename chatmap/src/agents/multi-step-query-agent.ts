@@ -289,52 +289,65 @@ export class MultiStepQueryAgent extends BaseAgent {
     // Step 1: Geocode destination with user location context
     reasoningSteps.push(`Step 1: Finding destination: ${destination}`);
 
-    // Add user location context to destination for better geocoding
-    let contextualDestination = destination;
+    // Try multiple geocoding attempts for better success rate
+    // Parse user location properly to avoid coordinate pollution
+    // Use config defaults as fallbacks
+    const { getDefaultLocation } = await import('@/src/lib/config');
+    const defaultLocation = getDefaultLocation();
+    let userCity = defaultLocation.city;
+    let userState = defaultLocation.state;
+    
+    if (context.userLocation?.display_name) {
+      const displayName = context.userLocation.display_name;
+      // Check if it contains coordinates (has parentheses with numbers)
+      if (displayName.includes('(') && displayName.includes(')')) {
+        // Extract city from before the parentheses
+        const beforeParens = displayName.split('(')[0].trim();
+        if (beforeParens) {
+          userCity = beforeParens.split(',')[0].trim();
+          userState = beforeParens.split(',')[1]?.trim() || defaultLocation.state;
+        }
+      } else {
+        // Normal address format
+        userCity = displayName.split(',')[0] || defaultLocation.city;
+        userState = displayName.split(',')[1]?.trim() || defaultLocation.state;
+      }
+    }
+    
+    const attempts = [
+      destination, // Original destination
+      // Add city context for better geocoding
+      `${destination}, ${userCity}, ${userState}`,
+      `${destination}, ${userCity}`,
+      // Add downtown context if destination contains downtown
+      ...(destination.toLowerCase().includes('downtown') ? [
+        `downtown ${userCity}, ${userState}`,
+        `downtown ${userCity}`,
+        `${userCity} downtown`
+      ] : [])
+    ];
+    
     let destData: any = null;
     
-    if (destination === 'downtown') {
-      // For downtown queries, try multiple approaches
-      const attempts = [
-        'downtown Houston, TX',
-        'downtown Houston',
-        'Houston downtown',
-        'downtown'
-      ];
-      
-      for (const attempt of attempts) {
-        try {
-          console.log(`[MultiStepQueryAgent] Trying geocoding: "${attempt}"`);
-          const destResult = await this.executeTool('geocode_address', {
-            address: attempt,
-          });
-          toolsUsed.push('geocode_address');
-          
-          destData = JSON.parse(destResult as string);
-          if (destData.success) {
-            contextualDestination = attempt;
-            break;
-          }
-        } catch (error) {
-          console.log(`[MultiStepQueryAgent] Geocoding failed for "${attempt}":`, error);
+    for (const attempt of attempts) {
+      try {
+        console.log(`[MultiStepQueryAgent] Trying geocoding: "${attempt}"`);
+        const destResult = await this.executeTool('geocode_address', {
+          address: attempt,
+        });
+        toolsUsed.push('geocode_address');
+        
+        destData = JSON.parse(destResult as string);
+        if (destData.success) {
+          break;
         }
+      } catch (error) {
+        console.log(`[MultiStepQueryAgent] Geocoding failed for "${attempt}":`, error);
       }
-      
-      if (!destData || !destData.success) {
-        throw new Error(`Could not find downtown area near your location`);
-      }
-    } else {
-      console.log(`[MultiStepQueryAgent] Geocoding destination: "${contextualDestination}"`);
-      
-      const destResult = await this.executeTool('geocode_address', {
-        address: contextualDestination,
-      });
-      toolsUsed.push('geocode_address');
-
-      destData = JSON.parse(destResult as string);
-      if (!destData.success) {
-        throw new Error(`Could not find destination: ${destination}`);
-      }
+    }
+    
+    if (!destData || !destData.success) {
+      throw new Error(`Could not find destination: ${destination}. Tried: ${attempts.join(', ')}`);
     }
 
     const destinationLocation = destData.location;

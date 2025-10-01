@@ -43,6 +43,13 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   
+  // Default Location Configuration (Public - available on client side)
+  NEXT_PUBLIC_DEFAULT_LAT: z.coerce.number().default(29.7604),
+  NEXT_PUBLIC_DEFAULT_LNG: z.coerce.number().default(-95.3698),
+  NEXT_PUBLIC_DEFAULT_CITY: z.string().default('Houston'),
+  NEXT_PUBLIC_DEFAULT_STATE: z.string().default('TX'),
+  NEXT_PUBLIC_DEFAULT_DISPLAY_NAME: z.string().default('Houston, TX'),
+  
   // Rate Limiting
   DEFAULT_RATE_LIMIT_MS: z.coerce.number().default(100),
   DEFAULT_MAX_RETRIES: z.coerce.number().default(3),
@@ -242,6 +249,27 @@ export const Config = {
     };
   },
 };
+
+/**
+ * Get default location configuration (client-safe)
+ * This doesn't require API keys and can be called on the client side
+ */
+export function getDefaultLocation() {
+  // Use environment variables directly without full config validation
+  const lat = process.env.NEXT_PUBLIC_DEFAULT_LAT ? parseFloat(process.env.NEXT_PUBLIC_DEFAULT_LAT) : 29.7604;
+  const lng = process.env.NEXT_PUBLIC_DEFAULT_LNG ? parseFloat(process.env.NEXT_PUBLIC_DEFAULT_LNG) : -95.3698;
+  const city = process.env.NEXT_PUBLIC_DEFAULT_CITY || 'Houston';
+  const state = process.env.NEXT_PUBLIC_DEFAULT_STATE || 'TX';
+  const display_name = process.env.NEXT_PUBLIC_DEFAULT_DISPLAY_NAME || 'Houston, TX';
+  
+  return {
+    lat,
+    lng,
+    city,
+    state,
+    display_name,
+  };
+}
 
 /**
  * Reset configuration (useful for testing)
