@@ -1,258 +1,488 @@
 # ChatMap 🗺️
 
-A conversational isochrone mapping tool that combines natural language queries with real-time map visualizations. Ask questions like "coffee shops I can bike to in 15 minutes" and get instant visual results with AI explanations.
+AI-powered conversational isochrone mapping application that combines natural language queries with real-time map visualizations. Ask questions like "coffee shops I can bike to in 15 minutes" and get instant visual results with AI explanations.
 
-## ✨ Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![Next.js](https://img.shields.io/badge/Next.js-15.5-black)
+![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-green)
 
-- **🗣️ Natural Language Queries**: Type conversational requests like "Thai restaurants within 10 minutes walk"
-- **🗺️ Real-time Map Visualization**: Interactive maps with isochrones and POI markers
-- **🧠 AI-Powered Parsing**: Uses Ollama (Llama 3.2) for intelligent query understanding
-- **💾 Memory Integration**: Persistent memory with mem0ai and Qdrant for personalized experiences
-- **📱 Mobile-First Design**: Optimized for mobile location queries
-- **🔄 Contextual Conversations**: Follow-up queries maintain context (e.g., "how about 15 mins drive?")
-- **⚡ Multi-modal Transport**: Walking, driving, cycling, and public transport support
-- **🎯 Smart POI Detection**: Automatically categorizes places (restaurants, cafes, pharmacies, etc.)
+## ⚡ Quick Start
 
-## 🏗️ Architecture
-
-
-- **100% Free Stack**: Ollama (local LLM) + OpenRouteService + Overpass API + OpenStreetMap
-
-
-### System Flow
-1. User types: "Thai restaurants I can walk to in 10 minutes"
-2. Ollama parses → `{poiType: "restaurant", transport: "walking", timeMinutes: 10}`
-3. OpenRouteService generates 10-minute walking isochrone
-4. Overpass API finds restaurants within isochrone polygon
-5. Ollama generates natural response explaining results
-6. Map displays isochrone + POI markers, chat shows explanation
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **Next.js 14** with App Router
-- **React 19** with TypeScript
-- **Tailwind CSS** for styling
-- **Leaflet** + **OpenStreetMap** for mapping
-- **Lucide React** for icons
-
-### Backend & AI
-- **Ollama** (Llama 3.2 3B) for local LLM processing
-- **mem0ai** for persistent memory and personalization
-- **Qdrant** as vector database for embeddings
-- **OpenRouteService** for isochrone generation
-- **Overpass API** for POI data from OpenStreetMap
-- **Nominatim** for geocoding addresses
-
-### Development
-- **TypeScript** for type safety
-- **ESLint** for code quality
-- **Turbopack** for fast development builds
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Node.js** 18+ and npm
-- **Docker** (for Qdrant)
-- **Ollama** (for local LLM)
-
-### 1. Clone and Install
-```bash
-git clone <repository-url>
-cd chatmap
-npm install
-```
-
-### 2. Set up Ollama
-```bash
-# Install Ollama
-# macOS
-brew install ollama
-
-# Linux
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# Windows: Download from https://ollama.ai/download
-
-# Pull required models
-ollama pull nomic-text:latest  # For embeddings
-ollama pull llama3.2:3b        # For LLM
-
-# Start Ollama service
-ollama serve
-```
-
-### 3. Set up Qdrant with Docker
-```bash
-# Start Qdrant
-docker-compose up -d
-```
-
-### 4. Configure Environment
-Create `.env.local`:
-```env
-# OpenRouteService API Key (free at https://openrouteservice.org/)
-OPENROUTESERVICE_API_KEY=your_api_key_here
-
-# Ollama Configuration
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2:3b
-OLLAMA_EMBEDDING_MODEL=nomic-text:latest
-
-# Qdrant Configuration
-QDRANT_URL=http://localhost:6333
-QDRANT_API_KEY=your_qdrant_api_key_here
-```
-
-### 5. Run Development Server
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the application.
-
-## 🔧 Advanced Setup
-
-### Using the Setup Script
-We provide an automated setup script:
+### One-Command Setup
 
 ```bash
-chmod +x setup-local.sh
+git clone https://github.com/yourusername/ChatMap.git
+cd ChatMap/chatmap
+./setup-local.sh  # Automated setup with Ollama + Qdrant
+npm run dev       # Runs on http://localhost:3000
+```
+
+**Prerequisites:**
+- Node.js 18+
+- Docker & Docker Compose (for Qdrant vector database)
+- Ollama (for local LLM)
+- Valid OpenRouteService API key
+
+### Automated Setup (Recommended)
+
+The `setup-local.sh` script handles everything:
+
+```bash
 ./setup-local.sh
 ```
 
-This script will:
-- Check prerequisites
-- Start Qdrant with Docker Compose
-- Verify Ollama is running
-- Test the mem0ai configuration
-- Start the development server
+This will:
+1. ✅ Check prerequisites (Node.js, Docker, Ollama)
+2. ✅ Start Qdrant vector database
+3. ✅ Download AI models (llama3.2:3b, nomic-embed-text)
+4. ✅ Install npm dependencies
+5. ✅ Create `.env.local` with your API key
+6. ✅ Verify all services are running
 
-### Manual mem0ai Setup
-For detailed mem0ai configuration, see [setup-mem0-local.md](./setup-mem0-local.md).
+### Manual Setup (If Needed)
 
-## 📱 Usage Examples
-
-### Basic Queries
-- "Find coffee shops within 15 minutes walk"
-- "Show me restaurants I can drive to in 10 minutes"
-- "Where are the nearest pharmacies?"
-
-### Contextual Follow-ups
-- Previous: "Find coffee shops within 15 mins walk" → Follow-up: "how about 15 mins drive?"
-- Previous: "Show me restaurants I can drive to" → Follow-up: "what about walking distance?"
-- Previous: "Find gyms within 10 minutes walk" → Follow-up: "how about 15 minutes?"
-
-### Advanced Queries
-- "Upscale Italian restaurants near me"
-- "24-hour pharmacies within 20 minutes drive"
-- "Find the nearest coffee shop"
-- "Mexican places close by"
-
-## 🧠 Memory & Personalization
-
-ChatMap uses mem0ai with Qdrant to provide personalized experiences:
-
-- **User Preferences**: Remembers favorite POI types and transport modes
-- **Location History**: Tracks frequently visited locations
-- **Conversation Context**: Maintains context across chat sessions
-- **Smart Suggestions**: Provides personalized recommendations based on history
-
-## 🗺️ API Endpoints
-
-### Chat API (`/api/chat`)
-- **POST** `/api/chat` - Parse queries and generate responses
-- Supports both `parse` and `respond` modes
-- Integrates with memory system for personalization
-
-### Geocoding API (`/api/geocode`)
-- **POST** `/api/geocode` - Convert addresses to coordinates
-- Supports address suggestions and autocomplete
-
-### Isochrone API (`/api/isochrone`)
-- **POST** `/api/isochrone` - Generate travel time polygons
-- Supports walking, driving, cycling, and public transport
-
-### POI API (`/api/pois`)
-- **POST** `/api/pois` - Find points of interest within isochrones
-- Filters POIs by type, cuisine, and other criteria
-
-### Memory API (`/api/memory`)
-- **GET** `/api/memory` - Retrieve user memories and preferences
-- **POST** `/api/memory` - Store new memories
-- **DELETE** `/api/memory` - Clear user memories
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Push to GitHub
-2. Connect to Vercel
-3. Add environment variables
-4. Deploy
-
-### Docker
 ```bash
-# Build the application
-docker build -t chatmap .
-
-# Run with Docker Compose
+# 1. Start Qdrant vector database
 docker-compose up -d
+
+# 2. Install Ollama models
+ollama pull llama3.2:3b          # Main chat model (~2GB)
+ollama pull nomic-embed-text     # Embeddings (~274MB)
+
+# 3. Install dependencies
+npm install
+
+# 4. Configure environment
+cp .env.example .env.local
+# Edit .env.local with your OpenRouteService API key
 ```
-
-## 🔧 Development
-
-### Available Scripts
-```bash
-npm run dev      # Start development server with Turbopack
-npm run build    # Build for production
-npm run start    # Start production server
-npm run lint     # Run ESLint
-```
-
-### Project Structure
-```
-src/
-├── app/                 # Next.js App Router
-│   ├── api/            # API routes
-│   └── page.tsx        # Main page
-├── components/         # React components
-│   ├── Chat.tsx        # Chat interface
-│   ├── Map.tsx         # Map component
-│   └── ...
-└── lib/                # Utilities and types
-    ├── memory/         # Memory system
-    └── types.ts        # TypeScript definitions
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **OpenStreetMap** contributors for map data
-- **OpenRouteService** for isochrone API
-- **Ollama** for local LLM capabilities
-- **mem0ai** for memory management
-- **Qdrant** for vector database
-- **Leaflet** for mapping library
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/your-username/chatmap/issues) page
-2. Review the setup documentation
-3. Ensure all services are running correctly
 
 ---
 
-**Built with ❤️ for the open source community**
+## 🎯 Key Features
+
+### **Intelligent Query Processing**
+- **Natural Language Understanding**: Parse complex location queries with AI agents
+- **Query Classification**: Automatic intent detection (find-nearest, find-within-time, find-near-poi, find-enroute)
+- **Multi-Step Reasoning**: Complex queries decomposed into coordinated steps
+- **Contextual Follow-ups**: "how about drive then?" maintains previous query context
+
+### **Advanced POI Discovery**
+- **4 Query Types Supported**:
+  1. Find nearest X → "Find nearest cafe"
+  2. Find X within Y minutes → "Find restaurants within 15 min walk"
+  3. Find X near nearest Y → "Find coffee shops near the nearest park"
+  4. Find X enroute to Y → "Find gas station before airport in 30 mins"
+
+### **Transparent AI Reasoning**
+- **Agent Metadata Display**: See how the AI classifies and processes queries
+- **Execution Metrics**: Response time, API call count, confidence scores
+- **Reasoning Steps**: Step-by-step logic visualization
+- **Tool Usage**: Track which tools the agent uses
+
+### **Geospatial Intelligence**
+- **Isochrone Generation**: Real-time reachability analysis
+- **Route Optimization**: Find optimal stopovers along routes
+- **Multi-Modal Transport**: Walking, driving, cycling, public transport
+- **POI Filtering**: Polygon-based spatial filtering with Turf.js
+
+### **Memory & Personalization** 🧠
+- **Semantic Memory**: Vector-based memory storage with Qdrant
+- **User Preferences**: Learns favorite transport modes, POI types, cuisines
+- **Conversation History**: Remembers past interactions and context
+- **Location Patterns**: Tracks frequently visited places and times
+- **Smart Recommendations**: Personalized suggestions based on history
+- **Multi-turn Context**: Maintains conversation state across sessions
+
+---
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Frontend (Next.js)                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐   │
+│  │     Chat     │  │     Map      │  │  Agent Metadata    │   │
+│  │  Component   │  │  (Leaflet)   │  │     Display        │   │
+│  └──────┬───────┘  └──────┬───────┘  └────────┬───────────┘   │
+│         │                 │                    │                │
+│         └─────────────────┴────────────────────┘                │
+│                           │                                     │
+└───────────────────────────┼─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      API Routes Layer                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐ │
+│  │ /api/    │  │ /api/poi/│  │ /api/    │  │  /api/agent    │ │
+│  │  pois    │  │ nearest  │  │ geocode  │  │   (Intelligent │ │
+│  │          │  │ near-poi │  │ directions│  │    Routing)    │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┬───────┘ │
+│       │ Validate    │ Validate     │ Validate         │         │
+│       │ + Delegate  │ + Delegate   │ + Delegate       │         │
+└───────┼─────────────┼──────────────┼──────────────────┼─────────┘
+        │             │              │                  │
+        ▼             ▼              ▼                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Agent Orchestration                          │
+│  ┌────────────────┐  ┌──────────────────┐  ┌─────────────────┐ │
+│  │     Query      │  │  Simple Query    │  │  Multi-Step     │ │
+│  │  Classifier    │→ │     Agent        │  │  Query Agent    │ │
+│  │  (LLM-based)   │  │  (1-2 API calls) │  │  (4-7 API calls)│ │
+│  └────────────────┘  └────────┬─────────┘  └────────┬────────┘ │
+│                               │                      │          │
+│                   ┌───────────┴──────────────────────┘          │
+│                   │                                             │
+│                   ▼                                             │
+│          ┌──────────────────┐                                  │
+│          │  LangChain Tools │                                  │
+│          │  - find_nearest  │                                  │
+│          │  - find_within   │                                  │
+│          │  - calculate_mtx │                                  │
+│          │  - get_directions│                                  │
+│          │  - optimize      │                                  │
+│          └────────┬─────────┘                                  │
+└───────────────────┼──────────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        Use Cases Layer                           │
+│  ┌───────────────┐  ┌────────────────┐  ┌──────────────────┐  │
+│  │ findNearestPOI│  │findPOIsWithin  │  │  findPOIsNearPOI │  │
+│  │               │  │     Time       │  │                  │  │
+│  └───────┬───────┘  └────────┬───────┘  └────────┬─────────┘  │
+│          │ Business Logic     │                   │            │
+│          │ Coordination       │                   │            │
+└──────────┼────────────────────┼───────────────────┼────────────┘
+           │                    │                   │
+           ▼                    ▼                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Client Layer                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────┐  │
+│  │   ORS Client │  │   Nominatim  │  │  Overpass Client    │  │
+│  │  (Routing &  │  │   Client     │  │  (OSM POI Search)   │  │
+│  │  Isochrones) │  │  (Geocoding) │  │                     │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬──────────┘  │
+│         │ Retry + Backoff │                     │              │
+│         │ Rate Limiting   │                     │              │
+└─────────┼─────────────────┼─────────────────────┼──────────────┘
+          │                 │                     │
+          ▼                 ▼                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     External APIs                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────┐  │
+│  │OpenRouteService  │Nominatim OSM │  │  Overpass API      │  │
+│  │- Isochrone   │  │- Geocoding   │  │  - POI Search      │  │
+│  │- Matrix      │  │- Reverse     │  │  - OSM Data        │  │
+│  │- Directions  │  │              │  │                    │  │
+│  │- Optimization│  │              │  │                    │  │
+│  └──────────────┘  └──────────────┘  └────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     Ollama (Local LLM)                          │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  llama3.2:3b - Query Classification & Response Generation│  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     Qdrant (Vector DB)                          │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  nomic-embed-text - Semantic Memory & User Preferences  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### **Architecture Principles**
+
+- **Clean Architecture**: Routes validate, use cases contain logic, clients handle APIs
+- **Separation of Concerns**: Clear boundaries between layers
+- **Type Safety**: Full TypeScript coverage with Zod validation
+- **Error Handling**: Structured error codes with retry logic
+- **Observability**: Execution metrics, API call tracking, warnings
+
+---
+
+## 📚 API Documentation
+
+### **Intelligent Agent Endpoint**
+
+```bash
+POST /api/agent
+Content-Type: application/json
+
+{
+  "query": "Find coffee shops within 15 minutes walk",
+  "userId": "user123",
+  "userLocation": {
+    "lat": 51.5074,
+    "lng": -0.1278,
+    "display_name": "London"
+  },
+  "memoryEnabled": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "classification": {
+      "intent": "find-within-time",
+      "complexity": "simple",
+      "confidence": 0.95,
+      "entities": {
+        "primaryPOI": "cafe",
+        "timeConstraint": 15,
+        "transport": "walking"
+      }
+    },
+    "agentUsed": "SimpleQueryAgent",
+    "result": {
+      "success": true,
+      "data": {
+        "pois": [...],
+        "count": 25,
+        "isochrone": {...}
+      },
+      "toolsUsed": ["find_pois_within_time"],
+      "reasoningSteps": [...]
+    }
+  }
+}
+```
+
+### **Core Endpoints**
+
+| Endpoint | Purpose | Complexity |
+|----------|---------|------------|
+| `POST /api/agent` | Intelligent query routing | Variable |
+| `POST /api/pois` | Find POIs within time | Simple (2 API calls) |
+| `POST /api/poi/nearest` | Find nearest POI | Simple (2 API calls) |
+| `POST /api/poi/near-poi` | Find X near nearest Y | Complex (4 API calls) |
+| `POST /api/poi/enroute` | Find POI along route | Complex (5-7 API calls) |
+| `POST /api/geocode` | Address to coordinates | Simple (1 API call) |
+| `POST /api/directions` | Calculate route | Simple (1 API call) |
+| `POST /api/memory` | Store memory | 1 API call + embedding |
+| `GET /api/memory` | Search/list memories | Vector search |
+| `GET /api/memory/context` | Get user context | Aggregation |
+
+### **Example Queries**
+
+```bash
+# Intelligent Agent Query (Recommended)
+curl -X POST http://localhost:3000/api/agent \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Find restaurants within 15 minutes walk",
+    "userId": "user123",
+    "userLocation": {"lat": 51.5074, "lng": -0.1278, "display_name": "London"},
+    "memoryEnabled": true
+  }'
+
+# Store User Preference
+curl -X POST http://localhost:3000/api/memory \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user123",
+    "content": "User prefers Italian restaurants and walking over driving",
+    "type": "preference",
+    "metadata": {"cuisine": "italian", "transport": "walking"}
+  }'
+
+# Search Memories Semantically
+curl "http://localhost:3000/api/memory?userId=user123&query=food%20preferences"
+
+# Get User Context
+curl "http://localhost:3000/api/memory/context?userId=user123"
+```
+
+---
+
+## 🛠️ Tech Stack
+
+### **Frontend**
+- **Next.js 15.5** - React framework with Turbopack
+- **TypeScript 5.0** - Type-safe development
+- **Tailwind CSS** - Utility-first styling
+- **Leaflet** - Interactive maps
+- **Lucide React** - Beautiful icons
+
+### **Backend**
+- **Next.js API Routes** - Serverless endpoints
+- **LangChain** - Agent orchestration & tool execution
+- **Ollama** - Local LLM inference (zero-cost)
+- **Zod** - Runtime type validation
+
+### **Geospatial Stack**
+- **OpenRouteService** - Routing, isochrones, optimization
+- **Nominatim** - Geocoding (OSM)
+- **Overpass API** - POI discovery (OSM)
+- **Turf.js** - Geospatial analysis
+
+### **AI & Memory Stack** 🧠
+- **llama3.2:3b** - Query classification & response generation (~2GB)
+- **nomic-embed-text** - 768-dim embeddings for semantic search (~274MB)
+- **Qdrant** - High-performance vector database
+- **Mem0-style Architecture** - Intelligent user memory system
+  - Semantic similarity search
+  - Automatic context aggregation
+  - User preference learning
+  - Conversation history tracking
+
+---
+
+## 📂 Project Structure
+
+```
+chatmap/
+├── src/
+│   ├── app/
+│   │   ├── api/              # API route handlers
+│   │   │   ├── agent/        # Intelligent agent endpoint
+│   │   │   ├── pois/         # POI search
+│   │   │   ├── poi/
+│   │   │   │   ├── nearest/  # Find nearest POI
+│   │   │   │   ├── near-poi/ # Complex multi-step
+│   │   │   │   └── enroute/  # Route optimization
+│   │   │   ├── geocode/      # Address → coordinates
+│   │   │   ├── directions/   # Routing
+│   │   │   └── memory/       # User memory
+│   │   ├── layout.tsx
+│   │   └── page.tsx          # Main application
+│   ├── components/
+│   │   ├── Chat.tsx          # Chat interface
+│   │   ├── Map.tsx           # Leaflet map
+│   │   ├── AgentMetadata.tsx # Agent reasoning display
+│   │   └── QueryInput.tsx    # Search input
+│   ├── agents/
+│   │   ├── query-classifier.ts       # LLM-based classification
+│   │   ├── simple-query-agent.ts     # Single-step queries
+│   │   ├── multi-step-query-agent.ts # Complex queries
+│   │   ├── agent-orchestrator.ts     # Agent routing
+│   │   ├── tools/index.ts            # LangChain tools
+│   │   └── prompts/                  # Prompt templates
+│   ├── usecases/
+│   │   ├── find-nearest-poi.ts       # Business logic
+│   │   ├── find-pois-within-time.ts
+│   │   ├── find-pois-near-poi.ts
+│   │   ├── find-poi-enroute.ts
+│   │   └── types.ts                  # Use case types
+│   ├── clients/
+│   │   ├── ors-client.ts             # OpenRouteService
+│   │   ├── nominatim-client.ts       # Geocoding
+│   │   ├── overpass-client.ts        # POI search
+│   │   ├── ollama-client.ts          # LLM
+│   │   └── memory-client.ts          # Memory system
+│   └── lib/
+│       ├── types.ts                  # Core types
+│       ├── config.ts                 # Configuration
+│       ├── retry.ts                  # Retry logic
+│       ├── rate-limiter.ts           # Rate limiting
+│       └── agent-api.ts              # Agent API client
+├── public/                           # Static assets
+├── e2e/                             # End-to-end tests
+├── .env.local                        # Environment config
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+---
+
+## 🧪 Testing
+
+### **Health Check**
+```bash
+curl http://localhost:3000/api/agent
+# Should return: {"status":"healthy","data":{...}}
+```
+
+### **Query Examples**
+
+**Simple Query:**
+```
+"Find restaurants within 15 minutes walk"
+→ SimpleQueryAgent → 2 API calls → ~2-4s
+```
+
+**Complex Query:**
+```
+"Find coffee shops near the nearest park"
+→ MultiStepQueryAgent → 4 API calls → ~5-7s
+→ Steps:
+  1. Find nearest park
+  2. Search cafes near park
+  3. Calculate travel times
+  4. Sort by distance
+```
+
+**Route Optimization:**
+```
+"Find gas station before airport in 30 mins"
+→ MultiStepQueryAgent → 5-7 API calls → ~8-12s
+→ Steps:
+  1. Geocode destination
+  2. Calculate direct route
+  3. Find POIs along route
+  4. Optimize stopover
+  5. Return best route
+```
+
+---
+
+## 🚀 Performance
+
+
+**Memory Performance:**
+- ✅ Vector embeddings cached by Ollama
+- ✅ Qdrant provides sub-100ms vector search
+- ✅ Memory failures don't block main flow
+- ✅ Automatic retry with exponential backoff
+
+**Optimization Opportunities:**
+- Response caching for common queries
+- Parallel API call execution
+- Progressive result streaming
+- Pre-computed isochrones
+- Memory batch operations
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+MIT License - Build amazing location-based AI applications!
+
+---
+
+## 🙏 Acknowledgments
+
+- **OpenRouteService** - Routing and isochrone APIs
+- **OpenStreetMap** - POI data via Nominatim & Overpass
+- **Ollama** - Local LLM inference
+- **LangChain** - Agent orchestration framework
+- **Qdrant** - Vector database for memory
+- **Leaflet** - Interactive mapping library
+
+---
+
+## 📞 Support
+
+For issues, questions, or feature requests, please open an issue on GitHub.
+
+Built with ❤️ for intelligent location discovery.

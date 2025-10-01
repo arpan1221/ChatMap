@@ -65,3 +65,15 @@ alwaysApply: true
 - Test API integrations with proper error scenarios
 - Verify mobile responsiveness on various screen sizes
 - Test with different query types and edge cases
+
+- "All secrets and URLs must be loaded via src/lib/config.ts with zod validation."
+  - "Every API route must only validate + delegate; no business logic inline."
+  - "Usecases live in src/usecases/* and compose clients; must be unit tested."
+  - "External APIs (ORS, Overpass, Nominatim, Ollama, mem0) only called through src/clients/* with retries and backoff."
+  - "Nominatim requests must include custom User-Agent and comply with rate-limit policies."
+  - "Overpass queries must use bounded bbox/area and exponential backoff."
+  - "All LLM outputs must be validated against zod schemas; one auto-repair attempt allowed, else ask clarification."
+  - "Prompts stored in src/agents/prompts/, version-controlled, and covered by acceptance tests."
+  - "Attribution for OSM, ORS, Overpass, Nominatim must appear in frontend footer."
+  - "Frontend map must cluster POIs and remain responsive >60fps with 1k+ markers."
+  - "No PR merges without updated tests and docs."
